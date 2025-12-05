@@ -1,0 +1,17 @@
+torch
+torchaudio
+pandas
+numpy
+jiwer
+scikit-learn
+transformers
+accelerate
+pyyaml
+datasets
+soundfile
+tqdm
+openpyxl
+openpyxl
+torchcodec
+soundfile
+protobuf<5

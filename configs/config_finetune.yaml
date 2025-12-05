@@ -1,0 +1,17 @@
+data:
+  transcript_path: data/transcript_clean.csv
+  audio_dir: data/wav_clean
+  sample_rate: 16000
+  seed: 42
+
+model:
+  pretrained_name: cahya/wav2vec2-large-xlsr-javanese
+
+training:
+  batch_size: 4
+  learning_rate: 0.0003
+  weight_decay: 0.0001
+  epochs: 1
+  gradient_accumulation_steps: 1
+  logging_steps: 25
+  save_dir: checkpoints/finetune
