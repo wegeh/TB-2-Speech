@@ -44,7 +44,11 @@ class ConformerCTC(nn.Module):
     def _feature_lengths(self, waveform_lengths: torch.Tensor) -> torch.Tensor:
         n_fft = self.melspec.n_fft
         hop_length = self.melspec.hop_length or 1
-        lengths = torch.div(waveform_lengths - n_fft, hop_length, rounding_mode="floor") + 1
+        # MelSpectrogram with center=True pads by n_fft//2 on each side.
+        pad = n_fft // 2
+        lengths = torch.div(
+            waveform_lengths + 2 * pad - n_fft, hop_length, rounding_mode="floor"
+        ) + 1
         return lengths.clamp(min=1)
 
     def forward(self, waveforms: torch.Tensor, waveform_lengths: torch.Tensor):
@@ -70,6 +74,7 @@ class ConformerCTC(nn.Module):
 
         # Use feature frame lengths derived from original waveforms for the padding mask.
         feature_lengths = self._feature_lengths(waveform_lengths)
+        feature_lengths = feature_lengths.clamp(max=feats.size(1))
         encoded, output_lengths = self.encoder(feats, feature_lengths)
         logits = self.fc(encoded)
         log_probs = F.log_softmax(logits, dim=-1)

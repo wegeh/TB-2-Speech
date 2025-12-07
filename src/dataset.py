@@ -61,6 +61,9 @@ def prepare_metadata(transcript_path: Path, audio_dir: Path) -> pd.DataFrame:
         except ValueError as exc:
             print(f"Skipping row due to filename parse error: {filename} ({exc})")
             continue
+        if not filepath.exists():
+            print(f"Skipping missing audio file: {filepath}")
+            continue
         records.append(
             {
                 "filepath": filepath,

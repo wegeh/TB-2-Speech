@@ -42,7 +42,6 @@ def clean_text(text: str) -> str:
     text = str(text).lower()
     text = text.translate(str.maketrans({c: " " for c in PUNCT_TO_REMOVE}))
     text = re.sub(r"[0-9]", " ", text)
-    # Remove any lingering non-letter symbols except apostrophes/spaces.
     text = re.sub(r"[^a-z'\s]", " ", text)
     text = re.sub(r"\s+", " ", text).strip()
     return text
@@ -66,10 +65,8 @@ def _guess_text_column(df: pd.DataFrame) -> str:
         if df[col].dtype == object:
             return col
     for col in df.columns:
-        # If any cell is a string, take it.
         if df[col].apply(lambda x: isinstance(x, str)).any():
             return col
-    # fallback to first column
     return df.columns[0]
 
 
@@ -79,8 +76,8 @@ def _attach_audio_filenames(
 ) -> tuple[pd.DataFrame, str]:
     """If no filename column exists, align transcripts to audio files sorted by name."""
     audio_files = sorted(
-        [p for p in audio_dir.glob("*.wav") if p.is_file()]
-        + [p for p in audio_dir.glob("*.WAV") if p.is_file()]
+        [p for p in audio_dir.rglob("*.wav") if p.is_file()]
+        + [p for p in audio_dir.rglob("*.WAV") if p.is_file()]
     )
     if not audio_files:
         raise ValueError(
@@ -144,7 +141,6 @@ def process_transcripts(
 ) -> Tuple[int, Path]:
     """Clean transcripts and write to CSV. Returns row count and source path."""
     df, used_path = load_transcript(transcript_path, sheet_name=sheet_name)
-    # Find text column; fallback to best guess.
     if text_column is not None and text_column in df.columns:
         text_col = text_column
     else:
@@ -153,7 +149,6 @@ def process_transcripts(
         except ValueError:
             text_col = _guess_text_column(df)
 
-    # Find filename column; fallback to aligning with audio files if provided.
     if filename_column is not None and filename_column in df.columns:
         file_col = filename_column
     else:
@@ -205,9 +200,11 @@ def process_audio_files(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     processed = 0
-    for wav_path in wav_files:
+    total = len(wav_files)
+    for i, wav_path in enumerate(wav_files, start=1):
+        print(f"[{i}/{total}] Processing {wav_path}")
         target_path = output_dir / wav_path.name
-
+    
         try:
             waveform, sr = torchaudio.load(wav_path)
             waveform = _to_mono(waveform)
@@ -241,7 +238,6 @@ def process_audio_files(
         except Exception:
             pass
 
-        # Fallback 2: ffmpeg CLI conversion (handles mislabeled .wav like 3gp/mp4).
         cmd = [
             "ffmpeg",
             "-y",
@@ -253,11 +249,19 @@ def process_audio_files(
             "1",
             str(target_path),
         ]
-        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        try:
+            result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        except FileNotFoundError:
+            print(f"[WARN] ffmpeg not found, skipping {wav_path}")
+            continue
+
         if result.returncode != 0:
-            raise RuntimeError(
-                f"Failed to convert {wav_path} via ffmpeg. stderr: {result.stderr.decode(errors='ignore')}"
+            print(
+                f"[WARN] Failed to convert {wav_path} via ffmpeg, skipping.\n"
+                f"stderr: {result.stderr.decode(errors='ignore')[:200]}"
             )
+            continue
+
         processed += 1
 
     return processed
@@ -346,7 +350,6 @@ def parse_args() -> argparse.Namespace:
 def main():
     args = parse_args()
 
-    # If default audio_dir doesn't exist but WAVs are in data/, fallback.
     audio_dir = args.audio_dir
     if not audio_dir.exists() and Path("data").exists():
         fallback_files = list(Path("data").glob("*.wav"))
