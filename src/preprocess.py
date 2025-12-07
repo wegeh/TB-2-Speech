@@ -22,7 +22,7 @@ import torch
 import torchaudio
 
 PUNCT_TO_REMOVE = string.punctuation.replace("'", "")
-TEXT_COL_CANDIDATES = ["text", "transcript", "sentence", "label", "target"]
+TEXT_COL_CANDIDATES = ["text", "Transcript", "sentence", "label", "target"]
 FILE_COL_CANDIDATES = [
     "file",
     "filename",
