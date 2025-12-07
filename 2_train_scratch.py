@@ -59,7 +59,6 @@ def main():
     val_dataset = JavaneseDataset(splits["val"], vocab=vocab, sample_rate=sample_rate)
 
     num_workers = int(data_cfg.get("num_workers", 0))
-    # On Windows, num_workers > 0 requires picklable objects; use partial instead of lambda.
     collate = functools.partial(collate_fn, blank_id=blank_id)
 
     train_loader = DataLoader(

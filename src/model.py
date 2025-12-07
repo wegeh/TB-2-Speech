@@ -68,14 +68,9 @@ class ConformerCTC(nn.Module):
         feats = feats.transpose(1, 2)  # (batch, frames, n_mels)
         feats = self.input_linear(feats)
 
-        # Use feature frames length for padding mask to match encoder input length.
-        output_lengths = torch.full(
-            (waveforms.size(0),),
-            feats.size(1),
-            device=waveform_lengths.device,
-            dtype=torch.long,
-        )
-        encoded, output_lengths = self.encoder(feats, output_lengths)
+        # Use feature frame lengths derived from original waveforms for the padding mask.
+        feature_lengths = self._feature_lengths(waveform_lengths)
+        encoded, output_lengths = self.encoder(feats, feature_lengths)
         logits = self.fc(encoded)
         log_probs = F.log_softmax(logits, dim=-1)
         return log_probs, output_lengths

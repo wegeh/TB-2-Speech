@@ -61,11 +61,9 @@ def build_hf_datasets(metadata: Dict[str, Dataset], sample_rate: int):
         df_local = df.copy()
         df_local["filepath"] = df_local["filepath"].astype(str)
 
-        # Keep paths only, do NOT cast to Audio()
         dataset = Dataset.from_pandas(df_local[["filepath", "transcript"]])
         dataset = dataset.rename_columns({"filepath": "audio_path"})
 
-        # Remove any internal index columns (__index_level_0__ etc)
         dataset = dataset.remove_columns(
             [col for col in dataset.column_names if col.startswith("__")]
         )
@@ -95,7 +93,6 @@ def main():
     cache_dir = args.cache_dir
     cache_dir.mkdir(parents=True, exist_ok=True)
 
-    # Change this in YAML to e.g. "cahya/wav2vec2-large-xlsr-javanese"
     pretrained_name = model_cfg.get("pretrained_name", "facebook/wav2vec2-large-xlsr-53")
 
     def build_processor_and_model():
@@ -114,7 +111,6 @@ def main():
             )
             return proc, mdl
         except TypeError:
-            # Fallback: manually assemble tokenizer + feature extractor from hub files.
             local_config = hf_hub_download(
                 pretrained_name, "config.json", cache_dir=cache_dir, force_download=True
             )
@@ -180,15 +176,12 @@ def main():
             return batch
 
     def prepare_batch(batch):
-        # Read raw waveform from file path
         audio_path = batch["audio_path"]
-        speech, sr = sf.read(audio_path)  # speech: np.ndarray
+        speech, sr = sf.read(audio_path)  
 
-        # If stereo, convert to mono
         if speech.ndim > 1:
             speech = np.mean(speech, axis=1)
 
-        # Assume cleaned wavs are already at `sample_rate`
         inputs = processor(speech, sampling_rate=sample_rate)
         batch["input_values"] = inputs.input_values[0]
 
@@ -212,12 +205,10 @@ def main():
     eval_dataset = None
 
     if hf_splits["train"] is not None:
-        # Add length info and filter short clips
         train_dataset = hf_splits["train"].map(add_num_samples)
         train_dataset = train_dataset.filter(
             lambda x: x["num_samples"] >= min_samples
         )
-        # Prepare model inputs
         train_dataset = train_dataset.map(
             prepare_batch,
             remove_columns=["audio_path", "transcript", "num_samples"],

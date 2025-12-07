@@ -45,8 +45,7 @@ class CTCTrainer:
             self.optimizer.zero_grad()
 
         log_probs, output_lengths = self.model(waveforms, waveform_lengths)
-        log_probs = log_probs.permute(1, 0, 2)  # T, B, C for CTCLoss
-        loss = self.ctc_loss(log_probs, labels, output_lengths, label_lengths)
+        loss = self.ctc_loss(log_probs.permute(1, 0, 2), labels, output_lengths, label_lengths)
 
         if train:
             loss.backward()
@@ -81,9 +80,7 @@ class CTCTrainer:
                 label_lengths = batch["label_lengths"].to(self.device)
 
                 log_probs, output_lengths = self.model(waveforms, waveform_lengths)
-                loss = self.ctc_loss(
-                    log_probs.permute(1, 0, 2), labels, output_lengths, label_lengths
-                )
+                loss = self.ctc_loss(log_probs.permute(1, 0, 2), labels, output_lengths, label_lengths)
                 total_loss += loss.item()
 
                 decoded = greedy_decoder(log_probs, self.idx_to_char, blank_id=self.blank_id)
