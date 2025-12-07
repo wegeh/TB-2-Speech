@@ -17,8 +17,18 @@ from torch.utils.data import Dataset
 
 
 DEFAULT_VOCAB = ["<blank>"] + list(" abcdefghijklmnopqrstuvwxyz'")
-TEXT_COL_CANDIDATES = ["text", "transcript", "sentence", "label", "target"]
-FILE_COL_CANDIDATES = ["file", "filename", "path", "audio", "wav", "utt", "utterance_id"]
+TEXT_COL_CANDIDATES = ["text", "transcript", "transcription", "sentence", "label", "target"]
+FILE_COL_CANDIDATES = [
+    "file",
+    "filename",
+    "path",
+    "audio", 
+    "wav",
+    "utt",
+    "utterance_id",
+    "sentenceid",
+    "id",
+]
 
 
 def _find_column(df: pd.DataFrame, candidates: List[str], kind: str) -> str:
