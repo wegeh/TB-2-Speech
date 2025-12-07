@@ -22,12 +22,19 @@ import torch
 import torchaudio
 
 PUNCT_TO_REMOVE = string.punctuation.replace("'", "")
-TEXT_COL_CANDIDATES = ["text", "transcript", "transcription", "sentence", "label", "target"]
+TEXT_COL_CANDIDATES = [
+    "text",
+    "transcript",
+    "transcription",
+    "sentence",
+    "label",
+    "target",
+]
 FILE_COL_CANDIDATES = [
     "file",
     "filename",
     "path",
-    "audio", 
+    "audio",
     "wav",
     "utt",
     "utterance_id",
@@ -180,6 +187,9 @@ def process_transcripts(
     cleaned = df[[file_col, text_col]].copy()
     cleaned[text_col] = cleaned[text_col].apply(clean_text)
     cleaned = cleaned[cleaned[text_col].str.len() > 0]
+
+    print(f"Cleaned {len(cleaned)} rows")
+    print(cleaned.head())
 
     if len(cleaned) == 0:
         raise ValueError(
