@@ -21,6 +21,13 @@ def set_all_seeds(seed: int = 42):
     torch.backends.cudnn.benchmark = False
 
 
+def seed_worker(worker_id):
+    """Seed function for DataLoader workers."""
+    worker_seed = torch.initial_seed() % 2**32
+    np.random.seed(worker_seed)
+    random.seed(worker_seed)
+
+
 def greedy_decoder(
     log_probs: torch.Tensor,
     idx_to_char: List[str] | Dict[int, str],

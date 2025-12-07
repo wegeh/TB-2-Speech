@@ -18,7 +18,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 from src.dataset import DEFAULT_VOCAB, JavaneseDataset, collate_fn, create_splits, prepare_metadata
 from src.model import ConformerCTC
 from src.trainer import CTCTrainer
-from src.utils import set_all_seeds
+from src.utils import set_all_seeds, seed_worker
 
 
 def load_config(path: Path) -> dict:
@@ -67,12 +67,17 @@ def main():
     num_workers = int(data_cfg.get("num_workers", 0))
     collate = functools.partial(collate_fn, blank_id=blank_id)
 
+    g = torch.Generator()
+    g.manual_seed(seed)
+
     train_loader = DataLoader(
         train_dataset,
         batch_size=int(train_cfg.get("batch_size", 8)),
         shuffle=True,
         collate_fn=collate,
         num_workers=num_workers,
+        worker_init_fn=seed_worker,
+        generator=g,
     )
     val_loader = DataLoader(
         val_dataset,
@@ -80,6 +85,8 @@ def main():
         shuffle=False,
         collate_fn=collate,
         num_workers=num_workers,
+        worker_init_fn=seed_worker,
+        generator=g,
     )
 
     model = ConformerCTC(
