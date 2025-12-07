@@ -9,6 +9,18 @@ import torchaudio
 
 
 class ConformerCTC(nn.Module):
+    """
+    Conformer-based CTC model for ASR.
+    
+    Args:
+        vocab_size (int): Size of the vocabulary (output classes).
+        encoder_dim (int): Dimension of the encoder.
+        encoder_layers (int): Number of Conformer layers.
+        num_heads (int): Number of attention heads.
+        n_mels (int): Number of mel filterbanks.
+        dropout (float): Dropout rate.
+        sample_rate (int): Audio sample rate.
+    """
     def __init__(
         self,
         vocab_size: int,
@@ -42,6 +54,7 @@ class ConformerCTC(nn.Module):
         self.fc = nn.Linear(encoder_dim, vocab_size)
 
     def _feature_lengths(self, waveform_lengths: torch.Tensor) -> torch.Tensor:
+        """Compute the length of the features after MelSpectrogram."""
         n_fft = self.melspec.n_fft
         hop_length = self.melspec.hop_length or 1
         # MelSpectrogram with center=True pads by n_fft//2 on each side.
@@ -51,11 +64,18 @@ class ConformerCTC(nn.Module):
         ) + 1
         return lengths.clamp(min=1)
 
-    def forward(self, waveforms: torch.Tensor, waveform_lengths: torch.Tensor):
+    def forward(
+        self, 
+        waveforms: torch.Tensor, 
+        waveform_lengths: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         """
+        Forward pass.
+
         Args:
             waveforms: (batch, time)
             waveform_lengths: (batch,)
+            
         Returns:
             log_probs: (batch, frames, vocab)
             output_lengths: (batch,)
@@ -74,8 +94,12 @@ class ConformerCTC(nn.Module):
 
         feature_lengths = self._feature_lengths(waveform_lengths)
         feature_lengths = feature_lengths.clamp(min=1, max=feats.size(1))
-        feature_lengths = torch.full_like(feature_lengths, feats.size(1))
+        
+        # Note: Conformer expects lengths, but we might need to mask properly if using it.
+        # torchaudio Conformer returns (output, output_lengths)
         encoded, output_lengths = self.encoder(feats, feature_lengths)
+        
         logits = self.fc(encoded)
         log_probs = F.log_softmax(logits, dim=-1)
+        
         return log_probs, output_lengths

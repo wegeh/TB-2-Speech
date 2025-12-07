@@ -4,6 +4,7 @@ Fine-tune pretrained Wav2Vec2 model for Javanese ASR.
 
 import argparse
 import json
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Union
@@ -25,6 +26,9 @@ from transformers import (
     Wav2Vec2Processor,
     set_seed,
 )
+
+# Add project root to sys.path
+sys.path.append(str(Path(__file__).parent.parent))
 
 from src.dataset import create_splits, prepare_metadata
 
@@ -239,21 +243,32 @@ def main():
         }
 
     eval_strategy = "steps" if eval_dataset is not None else "no"
-    training_args = TrainingArguments(
+
+    def _supports_arg(name: str) -> bool:
+        return name in inspect.signature(TrainingArguments.__init__).parameters
+
+    ta_kwargs = dict(
         output_dir=train_cfg.get("save_dir", "checkpoints/finetune"),
         per_device_train_batch_size=int(train_cfg.get("batch_size", 4)),
         per_device_eval_batch_size=int(train_cfg.get("batch_size", 4)),
         learning_rate=float(train_cfg.get("learning_rate", 3e-4)),
         num_train_epochs=int(train_cfg.get("epochs", 20)),
         gradient_accumulation_steps=int(train_cfg.get("gradient_accumulation_steps", 1)),
-        evaluation_strategy=eval_strategy,
-        save_strategy="steps",
         eval_steps=int(train_cfg.get("logging_steps", 100)),
         save_steps=int(train_cfg.get("logging_steps", 100)),
         logging_steps=int(train_cfg.get("logging_steps", 100)),
         fp16=torch.cuda.is_available(),
-        report_to="none",
     )
+    if _supports_arg("evaluation_strategy"):
+        ta_kwargs["evaluation_strategy"] = eval_strategy
+    elif _supports_arg("evaluate_during_training"):
+        ta_kwargs["evaluate_during_training"] = eval_dataset is not None
+    if _supports_arg("save_strategy"):
+        ta_kwargs["save_strategy"] = "steps"
+    if _supports_arg("report_to"):
+        ta_kwargs["report_to"] = "none"
+
+    training_args = TrainingArguments(**ta_kwargs)
 
     data_collator = DataCollatorCTCWithPadding(processor=processor)
 

@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tb-2-speech"
+version = "0.1.0"
+description = "Javanese ASR Pipeline"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "torch",
+    "torchaudio",
+    "pandas",
+    "numpy",
+    "soundfile",
+    "transformers",
+    "jiwer",
+    "pyyaml",
+    "tqdm",
+    "huggingface_hub",
+    "datasets",
+    "openpyxl"
+]
+
+[project.scripts]
+clean-data = "scripts.clean_data:main"
+train-scratch = "scripts.train_scratch:main"
+train-finetune = "scripts.train_finetune:main"
+evaluate = "scripts.evaluate:main"

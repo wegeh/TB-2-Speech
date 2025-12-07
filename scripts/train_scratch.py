@@ -5,11 +5,15 @@ Train Conformer CTC from scratch using cleaned data.
 import argparse
 import functools
 import os
+import sys
 from pathlib import Path
 
 import torch
 import yaml
 from torch.utils.data import DataLoader
+
+# Add project root to sys.path
+sys.path.append(str(Path(__file__).parent.parent))
 
 from src.dataset import DEFAULT_VOCAB, JavaneseDataset, collate_fn, create_splits, prepare_metadata
 from src.model import ConformerCTC

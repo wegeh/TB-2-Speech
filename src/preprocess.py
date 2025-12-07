@@ -11,8 +11,9 @@ from __future__ import annotations
 import argparse
 import re
 import string
+import sys
 from pathlib import Path
-from typing import Iterable, Tuple
+from typing import Iterable, Tuple, Optional
 
 import pandas as pd
 import torch
@@ -50,10 +51,18 @@ def clean_text(text: str) -> str:
 def _find_column(df: pd.DataFrame, candidates: Iterable[str], kind: str) -> str:
     candidates = list(candidates)
     lowered = {col.lower(): col for col in df.columns}
-    for col_lower, original in lowered.items():
-        for cand in candidates:
-            if cand == col_lower or cand in col_lower:
+    
+    # Priority 1: Exact matches
+    for cand in candidates:
+        if cand in lowered:
+            return lowered[cand]
+            
+    # Priority 2: Partial matches (in order of candidates)
+    for cand in candidates:
+        for col_lower, original in lowered.items():
+            if cand in col_lower:
                 return original
+                
     raise ValueError(
         f"Cannot find {kind} column. Looked for {candidates}. Available: {list(df.columns)}"
     )
@@ -175,7 +184,7 @@ def process_transcripts(
     return len(cleaned), used_path
 
 
-def _to_mono(waveform) -> torchaudio.Tensor:
+def _to_mono(waveform: torch.Tensor) -> torch.Tensor:
     """Convert waveform tensor to mono."""
     if waveform.dim() == 1:
         waveform = waveform.unsqueeze(0)

@@ -1,4 +1,4 @@
-"""Dataset utilities for Javanese ASR."""
+"""Dataset and data loading utilities."""
 
 from __future__ import annotations
 
@@ -130,12 +130,10 @@ def create_splits(df: pd.DataFrame, seed: int = 42) -> Dict[str, pd.DataFrame]:
     }
 
 
-def encode_text(text: str, vocab: List[str]) -> List[int]:
-    char_to_idx = {c: i for i, c in enumerate(vocab)}
-    return [char_to_idx[ch] for ch in text if ch in char_to_idx]
-
-
 class JavaneseDataset(Dataset):
+    """
+    Dataset for Javanese ASR.
+    """
     def __init__(
         self,
         data: pd.DataFrame,
@@ -230,7 +228,10 @@ class JavaneseDataset(Dataset):
         }
 
 
-def collate_fn(batch: List[Dict], blank_id: int = 0) -> Dict[str, torch.Tensor]:
+def collate_fn(batch: List[Dict], blank_id: int = 0) -> Dict:
+    """
+    Collate batch of examples.
+    """
     waveforms = [item["waveform"] for item in batch]
     labels = [item["labels"] for item in batch]
     transcripts = [item["transcript"] for item in batch]

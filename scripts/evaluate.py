@@ -3,6 +3,7 @@ Evaluate scratch and fine-tuned models on the held-out test set.
 """
 
 import argparse
+import sys
 from pathlib import Path
 from typing import Dict, List
 
@@ -15,6 +16,9 @@ import yaml
 from jiwer import cer, wer
 from tqdm import tqdm
 from transformers import Wav2Vec2ForCTC, Wav2Vec2Processor
+
+# Add project root to sys.path
+sys.path.append(str(Path(__file__).parent.parent))
 
 from src.dataset import DEFAULT_VOCAB, JavaneseDataset, collate_fn, create_splits, prepare_metadata
 from src.model import ConformerCTC

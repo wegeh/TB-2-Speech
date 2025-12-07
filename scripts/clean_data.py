@@ -4,6 +4,12 @@ Runner script for data cleaning:
 - Audio resampling to 16 kHz mono
 """
 
+import sys
+from pathlib import Path
+
+# Add project root to sys.path
+sys.path.append(str(Path(__file__).parent.parent))
+
 from src import preprocess
 
 
