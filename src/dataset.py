@@ -33,9 +33,14 @@ FILE_COL_CANDIDATES = [
 
 def _find_column(df: pd.DataFrame, candidates: List[str], kind: str) -> str:
     lowered = {col.lower(): col for col in df.columns}
-    for col_lower, original in lowered.items():
-        for cand in candidates:
-            if cand == col_lower or cand in col_lower:
+    for cand in candidates:
+        cand_lower = cand.lower()
+        # exact match
+        if cand_lower in lowered:
+            return lowered[cand_lower]
+        # partial match
+        for col_lower, original in lowered.items():
+            if cand_lower in col_lower:
                 return original
     raise ValueError(
         f"Cannot find {kind} column. Looked for {candidates}. Available: {list(df.columns)}"
@@ -54,11 +59,24 @@ def parse_filename_metadata(filename: str) -> Tuple[str, str]:
     return speaker_id, native_flag
 
 
-def prepare_metadata(transcript_path: Path, audio_dir: Path) -> pd.DataFrame:
+def prepare_metadata(
+    transcript_path: Path,
+    audio_dir: Path,
+    text_column: str | None = None,
+    filename_column: str | None = None,
+) -> pd.DataFrame:
     """Load transcript_clean.csv and attach audio paths plus metadata."""
     df = pd.read_csv(transcript_path)
-    file_col = _find_column(df, FILE_COL_CANDIDATES, "audio filename")
-    text_col = _find_column(df, TEXT_COL_CANDIDATES, "text")
+    file_col = (
+        filename_column
+        if filename_column and filename_column in df.columns
+        else _find_column(df, FILE_COL_CANDIDATES, "audio filename")
+    )
+    text_col = (
+        text_column
+        if text_column and text_column in df.columns
+        else _find_column(df, TEXT_COL_CANDIDATES, "text")
+    )
 
     records = []
     for _, row in df.iterrows(): 

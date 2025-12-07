@@ -95,7 +95,12 @@ def main():
     seed = int(data_cfg.get("seed", 42))
     set_seed(seed)
 
-    metadata = prepare_metadata(transcript_path, audio_dir)
+    text_column = data_cfg.get("text_column", None)
+    filename_column = data_cfg.get("filename_column", None)
+
+    metadata = prepare_metadata(
+        transcript_path, audio_dir, text_column=text_column, filename_column=filename_column
+    )
     splits = create_splits(metadata, seed=seed)
     hf_splits = build_hf_datasets(splits, sample_rate=sample_rate)
 

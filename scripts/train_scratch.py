@@ -55,7 +55,12 @@ def main():
     sample_rate = int(data_cfg.get("sample_rate", 16000))
     seed = int(data_cfg.get("seed", 42))
 
-    metadata = prepare_metadata(transcript_path, audio_dir)
+    text_column = data_cfg.get("text_column", None)
+    filename_column = data_cfg.get("filename_column", None)
+
+    metadata = prepare_metadata(
+        transcript_path, audio_dir, text_column=text_column, filename_column=filename_column
+    )
     splits = create_splits(metadata, seed=seed)
 
     vocab = DEFAULT_VOCAB

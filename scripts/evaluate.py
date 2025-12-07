@@ -259,8 +259,12 @@ def main():
     transcript_path = Path(data_cfg.get("transcript_path", "data/transcript_clean.csv"))
     audio_dir = Path(data_cfg.get("audio_dir", "data/wav_clean"))
     seed = int(data_cfg.get("seed", 42))
+    text_column = data_cfg.get("text_column", None)
+    filename_column = data_cfg.get("filename_column", None)
 
-    metadata = prepare_metadata(transcript_path, audio_dir)
+    metadata = prepare_metadata(
+        transcript_path, audio_dir, text_column=text_column, filename_column=filename_column
+    )
     splits = create_splits(metadata, seed=seed)
     test_df = splits["test"]
 

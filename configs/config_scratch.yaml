@@ -1,6 +1,8 @@
 data:
   transcript_path: data/transcript_clean.csv
   audio_dir: data/wav_clean
+  text_column: Transcript
+  filename_column: SentenceID
   sample_rate: 16000
   num_workers: 0
   seed: 42
