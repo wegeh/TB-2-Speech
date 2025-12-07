@@ -11,7 +11,7 @@ training:
   batch_size: 6
   learning_rate: 0.0001
   weight_decay: 0.0001
-  epochs: 20
+  epochs: 2
   gradient_accumulation_steps: 1
   logging_steps: 25
   save_dir: checkpoints/finetune
