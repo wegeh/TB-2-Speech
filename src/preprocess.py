@@ -40,9 +40,11 @@ def clean_text(text: str) -> str:
         return ""
 
     text = str(text).lower()
-    text = text.translate(str.maketrans({c: " " for c in PUNCT_TO_REMOVE}))
+    # Remove all punctuation including apostrophes
+    text = text.translate(str.maketrans({c: " " for c in string.punctuation}))
     text = re.sub(r"[0-9]", " ", text)
-    text = re.sub(r"[^a-z'\s]", " ", text)
+    # Only allow a-z and whitespace
+    text = re.sub(r"[^a-z\s]", " ", text)
     text = re.sub(r"\s+", " ", text).strip()
     return text
 

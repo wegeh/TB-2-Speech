@@ -24,7 +24,8 @@ dependencies = [
     "tqdm",
     "openpyxl",
     "torchcodec",
-    "protobuf<5"
+    "protobuf<5",
+    "matplotlib",
 ]
 
 [project.scripts]

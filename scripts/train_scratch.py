@@ -19,6 +19,7 @@ from src.dataset import DEFAULT_VOCAB, JavaneseDataset, collate_fn, create_split
 from src.model import ConformerCTC
 from src.trainer import CTCTrainer
 from src.utils import set_all_seeds, seed_worker
+from src.visualization import plot_metrics
 
 
 def load_config(path: Path) -> dict:
@@ -120,7 +121,8 @@ def main():
     checkpoint_dir = Path(train_cfg.get("checkpoint_dir", "checkpoints/scratch"))
     epochs = int(train_cfg.get("epochs", 50))
 
-    trainer.fit(train_loader, val_loader, epochs=epochs, checkpoint_dir=checkpoint_dir)
+    history = trainer.fit(train_loader, val_loader, epochs=epochs, checkpoint_dir=checkpoint_dir)
+    plot_metrics(history, checkpoint_dir / "training_plot.png")
 
 
 if __name__ == "__main__":

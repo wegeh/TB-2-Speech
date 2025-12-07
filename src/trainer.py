@@ -141,7 +141,7 @@ class CTCTrainer:
         val_loader: DataLoader,
         epochs: int,
         checkpoint_dir: Path,
-    ):
+    ) -> Dict[str, List[float]]:
         """
         Run the training loop.
         
@@ -150,15 +150,30 @@ class CTCTrainer:
             val_loader (DataLoader): Validation dataloader.
             epochs (int): Number of epochs to train.
             checkpoint_dir (Path): Directory to save checkpoints.
+            
+        Returns:
+            Dict[str, List[float]]: History of metrics.
         """
         checkpoint_dir = Path(checkpoint_dir)
         checkpoint_dir.mkdir(parents=True, exist_ok=True)
         best_wer = float("inf")
         best_path = checkpoint_dir / "best_model.pth"
+        
+        history = {
+            "train_loss": [],
+            "val_loss": [],
+            "val_wer": [],
+            "val_cer": []
+        }
 
         for epoch in range(1, epochs + 1):
             train_loss = self.train_epoch(train_loader, epoch)
             val_metrics = self.evaluate(val_loader)
+            
+            history["train_loss"].append(train_loss)
+            history["val_loss"].append(val_metrics["loss"])
+            history["val_wer"].append(val_metrics["wer"])
+            history["val_cer"].append(val_metrics["cer"])
 
             print(
                 f"Epoch {epoch} | Train Loss {train_loss:.4f} | "
@@ -178,3 +193,5 @@ class CTCTrainer:
                     best_path,
                 )
                 print(f"Saved new best model to {best_path}")
+        
+        return history

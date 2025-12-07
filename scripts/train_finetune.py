@@ -33,6 +33,8 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 from src.dataset import create_splits, prepare_metadata
 from src.utils import set_all_seeds
+from src.visualization import plot_metrics
+from transformers import TrainerCallback
 
 
 def load_config(path: Path) -> dict:
@@ -288,6 +290,33 @@ def main():
 
     data_collator = DataCollatorCTCWithPadding(processor=processor)
 
+    class PlottingCallback(TrainerCallback):
+        def __init__(self, save_path: Path):
+            self.save_path = save_path
+            self.history = {
+                "train_loss": [],
+                "val_loss": [],
+                "val_wer": [],
+                "val_cer": []
+            }
+
+        def on_log(self, args, state, control, logs=None, **kwargs):
+            if logs:
+                if "loss" in logs:
+                    self.history["train_loss"].append(logs["loss"])
+                if "eval_loss" in logs:
+                    self.history["val_loss"].append(logs["eval_loss"])
+                if "eval_wer" in logs:
+                    self.history["val_wer"].append(logs["eval_wer"])
+                if "eval_cer" in logs:
+                    self.history["val_cer"].append(logs["eval_cer"])
+
+        def on_train_end(self, args, state, control, **kwargs):
+            plot_metrics(self.history, self.save_path)
+
+    save_dir = Path(train_cfg.get("save_dir", "checkpoints/finetune"))
+    plotting_callback = PlottingCallback(save_dir / "training_plot.png")
+
     trainer = Trainer(
         model=model,
         data_collator=data_collator,
@@ -296,6 +325,7 @@ def main():
         eval_dataset=eval_dataset,
         tokenizer=processor.feature_extractor,
         compute_metrics=compute_metrics,
+        callbacks=[plotting_callback],
     )
 
     trainer.train()

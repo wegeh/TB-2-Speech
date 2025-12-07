@@ -13,7 +13,40 @@ import soundfile as sf
 import torch
 import torchaudio
 import yaml
+import jiwer
 from jiwer import cer, wer
+
+
+def analyze_errors(ref: str, hyp: str) -> Dict:
+    """
+    Analyze errors between reference and hypothesis.
+    Returns dict with hits, substitutions, deletions, insertions, and error_string.
+    """
+    if not ref:
+        return {"hits": 0, "subs": 0, "dels": 0, "ins": len(hyp.split()), "error_str": "All Insertions"}
+    
+    out = jiwer.process_words(ref, hyp)
+    
+    # Construct a readable error string
+    # We can iterate through alignments
+    error_parts = []
+    for chunk in out.alignments[0]:
+        if chunk.type == "substitute":
+            error_parts.append(f"S:{chunk.ref_str}->{chunk.hyp_str}")
+        elif chunk.type == "delete":
+            error_parts.append(f"D:{chunk.ref_str}")
+        elif chunk.type == "insert":
+            error_parts.append(f"I:{chunk.hyp_str}")
+            
+    error_str = ", ".join(error_parts) if error_parts else "OK"
+    
+    return {
+        "hits": out.hits,
+        "subs": out.substitutions,
+        "dels": out.deletions,
+        "ins": out.insertions,
+        "error_str": error_str
+    }
 from tqdm import tqdm
 from transformers import Wav2Vec2ForCTC, Wav2Vec2Processor
 
@@ -258,12 +291,24 @@ def main():
     rows = []
     for rec in scratch_metrics["records"]:
         fname = rec["filename"]
+        target = rec["target"]
+        pred_scratch = rec["prediction_scratch"]
+        pred_finetune = finetune_preds.get(fname, "")
+        
+        scratch_analysis = analyze_errors(target, pred_scratch)
+        finetune_analysis = analyze_errors(target, pred_finetune)
+        
         rows.append(
             {
                 "filename": fname,
-                "target": rec["target"],
-                "prediction_scratch": rec["prediction_scratch"],
-                "prediction_finetune": finetune_preds.get(fname, ""),
+                "target": target,
+                "prediction_scratch": pred_scratch,
+                "scratch_error": scratch_analysis["error_str"],
+                "prediction_finetune": pred_finetune,
+                "finetune_error": finetune_analysis["error_str"],
+                # We can add counts if needed, but string might be enough for quick check
+                "scratch_wer": jiwer.wer(target, pred_scratch) if target else 1.0,
+                "finetune_wer": jiwer.wer(target, pred_finetune) if target else 1.0,
             }
         )
 
