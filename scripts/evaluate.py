@@ -3,15 +3,15 @@ Evaluate scratch and fine-tuned models on the held-out test set.
 """
 
 import argparse
+import subprocess
 import sys
 from pathlib import Path
 from typing import Dict, List
 
 import pandas as pd
+import soundfile as sf
 import torch
 import torchaudio
-import soundfile as sf
-import subprocess
 import yaml
 from jiwer import cer, wer
 from tqdm import tqdm
@@ -20,7 +20,13 @@ from transformers import Wav2Vec2ForCTC, Wav2Vec2Processor
 # Add project root to sys.path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from src.dataset import DEFAULT_VOCAB, JavaneseDataset, collate_fn, create_splits, prepare_metadata
+from src.dataset import (
+    DEFAULT_VOCAB,
+    JavaneseDataset,
+    collate_fn,
+    create_splits,
+    prepare_metadata,
+)
 from src.model import ConformerCTC
 from src.utils import greedy_decoder, set_all_seeds
 
@@ -109,7 +115,9 @@ def evaluate_scratch(
             preds = greedy_decoder(log_probs, idx_to_char, blank_id=0)
             refs.extend(batch["transcripts"])
             hyps.extend(preds)
-            for fname, ref, pred in zip(batch["filenames"], batch["transcripts"], preds):
+            for fname, ref, pred in zip(
+                batch["filenames"], batch["transcripts"], preds
+            ):
                 records.append(
                     {
                         "filename": fname,
@@ -159,7 +167,9 @@ def evaluate_finetune(
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Evaluate scratch vs fine-tuned models.")
+    parser = argparse.ArgumentParser(
+        description="Evaluate scratch vs fine-tuned models."
+    )
     parser.add_argument(
         "--scratch_config",
         type=Path,
@@ -213,7 +223,7 @@ def main():
     test_dataset = JavaneseDataset(test_df, vocab=vocab, sample_rate=sample_rate)
     test_loader = torch.utils.data.DataLoader(
         test_dataset,
-        batch_size=4,
+        batch_size=1,
         shuffle=False,
         collate_fn=lambda b: collate_fn(b, blank_id=blank_id),
     )
@@ -239,7 +249,9 @@ def main():
     scratch_metrics = evaluate_scratch(scratch_model, test_loader, device, idx_to_char)
 
     # Fine-tuned model
-    finetune_metrics = evaluate_finetune(args.finetune_dir, test_df, sample_rate, device)
+    finetune_metrics = evaluate_finetune(
+        args.finetune_dir, test_df, sample_rate, device
+    )
 
     # Merge predictions
     finetune_preds = finetune_metrics["preds"]
