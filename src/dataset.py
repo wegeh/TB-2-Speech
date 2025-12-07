@@ -114,7 +114,7 @@ def create_splits(df: pd.DataFrame, seed: int = 42) -> Dict[str, pd.DataFrame]:
         train_keep.append(indices[0])
 
     leftover_indices = set(remaining_df.index.tolist()) - set(train_keep)
-    leftover_indices = list(leftover_indices)
+    leftover_indices = sorted(list(leftover_indices))
     rng.shuffle(leftover_indices)
 
     target_val = int(round(len(df) * 0.10))
