@@ -109,7 +109,7 @@ def create_splits(df: pd.DataFrame, seed: int = 42) -> Dict[str, pd.DataFrame]:
     train_keep = []
     speaker_groups = remaining_df.groupby("speaker_id")
     for _, group in speaker_groups:
-        indices = group.index.tolist()
+        indices = sorted(group.index.tolist())
         rng.shuffle(indices)
         train_keep.append(indices[0])
 
