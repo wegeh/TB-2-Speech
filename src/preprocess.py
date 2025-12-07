@@ -60,10 +60,10 @@ def clean_text(text: str) -> str:
 
 def normalize_filename(filename: str) -> str:
     """
-    Normalize filename by zero-padding single digits at the end of the stem.
-    Example: '...utt1.wav' -> '...utt01.wav'
+    Normalize filename by lowercasing and zero-padding single digits at the end of the stem.
+    Example: '...utt1.wav' -> '...utt01.wav' and 'Speaker01.WAV' -> 'speaker01.wav'
     """
-    path = Path(filename)
+    path = Path(filename.lower())
     stem = path.stem
     suffix = path.suffix
     

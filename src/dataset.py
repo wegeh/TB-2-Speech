@@ -81,8 +81,8 @@ def prepare_metadata(
 
     records = []
     for _, row in df.iterrows(): 
-        filename = str(row[file_col])
-        if not filename.lower().endswith(".wav"):
+        filename = str(row[file_col]).strip().lower()
+        if not filename.endswith(".wav"):
             filename = f"{filename}.wav"
         filepath = audio_dir / filename
         # Handle cases where transcript uses utt1 instead of utt01
