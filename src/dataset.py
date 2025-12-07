@@ -75,18 +75,18 @@ def prepare_metadata(transcript_path: Path, audio_dir: Path) -> pd.DataFrame:
     return pd.DataFrame(records)
 
 
-def _sample_speakers(speakers: List[str], fraction: float, rng: random.Random) -> List[str]:
+def _sample_speakers_fixed(speakers: List[str], k: int, rng: random.Random) -> List[str]:
+    """Sample up to k speakers (at least 1 if available)."""
     if not speakers:
         return []
-    k = max(1, int(math.ceil(len(speakers) * fraction)))
-    k = min(len(speakers), k)
+    k = max(1, min(len(speakers), k))
     return rng.sample(speakers, k)
 
 
 def create_splits(df: pd.DataFrame, seed: int = 42) -> Dict[str, pd.DataFrame]:
     """
     Create splits with speaker-disjoint test and per-utterance train/val:
-    - Test: 10% native speakers + 10% non-native speakers (by speaker, disjoint).
+    - Test: fixed 7 native speakers + 7 non-native speakers (by speaker, disjoint; capped by availability).
     - Train/Val: on remaining utterances, split per-utterance to target 70%/10% of total data.
     """
     rng = random.Random(seed)
@@ -95,8 +95,8 @@ def create_splits(df: pd.DataFrame, seed: int = 42) -> Dict[str, pd.DataFrame]:
     native_speakers = sorted(set(df[df["native_flag"] == "n"]["speaker_id"]))
     non_native_speakers = sorted(set(df[df["native_flag"] == "nn"]["speaker_id"]))
 
-    test_native = _sample_speakers(native_speakers, 0.10, rng)
-    test_non_native = _sample_speakers(non_native_speakers, 0.10, rng)
+    test_native = _sample_speakers_fixed(native_speakers, 7, rng)
+    test_non_native = _sample_speakers_fixed(non_native_speakers, 7, rng)
     test_speakers = set(test_native + test_non_native)
 
     df["split"] = "train"
