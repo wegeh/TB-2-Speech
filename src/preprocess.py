@@ -27,10 +27,12 @@ FILE_COL_CANDIDATES = [
     "file",
     "filename",
     "path",
-    "audio",
+    "audio", 
     "wav",
     "utt",
     "utterance_id",
+    "sentenceid",
+    "id",
 ]
 
 
