@@ -110,7 +110,7 @@ def _attach_audio_filenames(
             f"Audio files: {len(audio_files)}, transcripts: {len(df)}."
         )
     df = df.copy()
-    df["filename"] = [p.name for p in audio_files[: len(df)]]
+    df["filename"] = [p.name.lower() for p in audio_files[: len(df)]]
     print(
         "Info: Audio filename column not found. "
         "Aligned transcripts to audio files in alphabetical order."
@@ -185,6 +185,7 @@ def process_transcripts(
             df, file_col = _attach_audio_filenames(df, audio_dir)
 
     cleaned = df[[file_col, text_col]].copy()
+    cleaned[file_col] = cleaned[file_col].astype(str).str.lower()
     cleaned[text_col] = cleaned[text_col].apply(clean_text)
     cleaned = cleaned[cleaned[text_col].str.len() > 0]
 
@@ -230,7 +231,7 @@ def process_audio_files(
     total = len(wav_files)
     for i, wav_path in enumerate(wav_files, start=1):
         print(f"[{i}/{total}] Processing {wav_path}")
-        target_path = output_dir / wav_path.name
+        target_path = output_dir / wav_path.name.lower()
 
         try:
             waveform, sr = torchaudio.load(wav_path)
