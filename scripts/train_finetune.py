@@ -31,6 +31,7 @@ from transformers import (
 sys.path.append(str(Path(__file__).parent.parent))
 
 from src.dataset import create_splits, prepare_metadata
+from src.utils import set_all_seeds
 
 
 def load_config(path: Path) -> dict:
@@ -77,6 +78,7 @@ def build_hf_datasets(metadata: Dict[str, Dataset], sample_rate: int):
 
 
 def main():
+    set_all_seeds(42)
     args = parse_args()
     cfg = load_config(args.config)
 

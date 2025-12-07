@@ -22,7 +22,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 from src.dataset import DEFAULT_VOCAB, JavaneseDataset, collate_fn, create_splits, prepare_metadata
 from src.model import ConformerCTC
-from src.utils import greedy_decoder
+from src.utils import greedy_decoder, set_all_seeds
 
 
 def load_audio_fallback(path: Path, target_sample_rate: int) -> torch.Tensor:
@@ -188,6 +188,7 @@ def parse_args():
 
 
 def main():
+    set_all_seeds(42)
     args = parse_args()
     scratch_cfg = load_yaml(args.scratch_config)
 

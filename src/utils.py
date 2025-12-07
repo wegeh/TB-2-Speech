@@ -4,8 +4,21 @@ from __future__ import annotations
 
 from typing import Iterable, List, Dict
 
+import random
+import numpy as np
 import torch
 from jiwer import cer, wer
+
+
+def set_all_seeds(seed: int = 42):
+    """Set seeds for reproducibility."""
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    # Ensure deterministic behavior for cuDNN
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
 
 def greedy_decoder(
