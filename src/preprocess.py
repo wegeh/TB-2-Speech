@@ -53,9 +53,15 @@ def _find_column(df: pd.DataFrame, candidates: Iterable[str], kind: str) -> str:
     candidates = list(candidates)
     lowered = {col.lower(): col for col in df.columns}
 
-    for col_lower, original in lowered.items():
-        for cand in candidates:
-            if cand == col_lower or cand in col_lower:
+    # First pass: exact matches
+    for cand in candidates:
+        if cand in lowered:
+            return lowered[cand]
+
+    # Second pass: partial matches
+    for cand in candidates:
+        for col_lower, original in lowered.items():
+            if cand in col_lower:
                 return original
 
     raise ValueError(
