@@ -23,7 +23,7 @@ def analyze_errors(ref: str, hyp: str) -> Dict:
     Returns dict with hits, substitutions, deletions, insertions, and error_string.
     """
     if not ref:
-        return {"hits": 0, "subs": "", "dels": "", "ins": hyp, "error_str": "All Insertions"}
+        return {"hits": 0, "subs": "", "dels": "", "ins": hyp, "error_str": f"I:{hyp}", "total_errors": len(hyp.split())}
     
     out = jiwer.process_words(ref, hyp)
     ref_words = out.references[0]
@@ -45,11 +45,22 @@ def analyze_errors(ref: str, hyp: str) -> Dict:
             hyp_str = " ".join(hyp_words[chunk.hyp_start_idx : chunk.hyp_end_idx])
             ins.append(hyp_str)
             
+    # Construct readable summary
+    error_parts = []
+    if subs: error_parts.append(f"S({len(subs)}):" + " ".join(subs))
+    if dels: error_parts.append(f"D({len(dels)}):" + " ".join(dels))
+    if ins: error_parts.append(f"I({len(ins)}):" + " ".join(ins))
+    
+    error_str = " | ".join(error_parts) if error_parts else "OK"
+    total_errors = len(subs) + len(dels) + len(ins)
+
     return {
         "hits": out.hits,
         "subs": ", ".join(subs),
         "dels": ", ".join(dels),
         "ins": ", ".join(ins),
+        "error_str": error_str,
+        "total_errors": total_errors,
     }
 from tqdm import tqdm
 from transformers import Wav2Vec2ForCTC, Wav2Vec2Processor
@@ -310,10 +321,14 @@ def main():
                 "scratch_subs": scratch_analysis["subs"],
                 "scratch_dels": scratch_analysis["dels"],
                 "scratch_ins": scratch_analysis["ins"],
+                "scratch_summary": scratch_analysis["error_str"],
+                "scratch_err_count": scratch_analysis["total_errors"],
                 "prediction_finetune": pred_finetune,
                 "finetune_subs": finetune_analysis["subs"],
                 "finetune_dels": finetune_analysis["dels"],
                 "finetune_ins": finetune_analysis["ins"],
+                "finetune_summary": finetune_analysis["error_str"],
+                "finetune_err_count": finetune_analysis["total_errors"],
                 "scratch_wer": jiwer.wer(target, pred_scratch) if target else 1.0,
                 "finetune_wer": jiwer.wer(target, pred_finetune) if target else 1.0,
             }
