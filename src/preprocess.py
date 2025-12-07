@@ -22,7 +22,7 @@ import torch
 import torchaudio
 
 PUNCT_TO_REMOVE = string.punctuation.replace("'", "")
-TEXT_COL_CANDIDATES = ["text", "Transcript", "sentence", "label", "target"]
+TEXT_COL_CANDIDATES = ["text", "transcript", "transcription", "sentence", "label", "target"]
 FILE_COL_CANDIDATES = [
     "file",
     "filename",
@@ -57,13 +57,15 @@ def _find_column(df: pd.DataFrame, candidates: Iterable[str], kind: str) -> str:
 
     # First pass: exact matches
     for cand in candidates:
-        if cand in lowered:
-            return lowered[cand]
+        cand_lower = cand.lower()
+        if cand_lower in lowered:
+            return lowered[cand_lower]
 
     # Second pass: partial matches
     for cand in candidates:
+        cand_lower = cand.lower()
         for col_lower, original in lowered.items():
-            if cand in col_lower:
+            if cand_lower in col_lower:
                 return original
 
     raise ValueError(
