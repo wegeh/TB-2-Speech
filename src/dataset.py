@@ -51,7 +51,7 @@ def prepare_metadata(transcript_path: Path, audio_dir: Path) -> pd.DataFrame:
     text_col = _find_column(df, TEXT_COL_CANDIDATES, "text")
 
     records = []
-    for _, row in df.iterrows():
+    for _, row in df.iterrows(): 
         filename = str(row[file_col])
         if not filename.lower().endswith(".wav"):
             filename = f"{filename}.wav"
@@ -82,9 +82,9 @@ def _sample_speakers(speakers: List[str], fraction: float, rng: random.Random) -
 
 def create_splits(df: pd.DataFrame, seed: int = 42) -> Dict[str, pd.DataFrame]:
     """
-    Create speaker-disjoint splits:
-    - Test: 10% native speakers + 10% non-native speakers (20% total speakers).
-    - Remaining speakers split into Train/Val with 70/10 proportion of total data.
+    Create splits with speaker-disjoint test and per-utterance train/val:
+    - Test: 10% native speakers + 10% non-native speakers (by speaker, disjoint).
+    - Train/Val: on remaining utterances, split per-utterance to target 70%/10% of total data.
     """
     rng = random.Random(seed)
     df = df.copy()
@@ -96,24 +96,29 @@ def create_splits(df: pd.DataFrame, seed: int = 42) -> Dict[str, pd.DataFrame]:
     test_non_native = _sample_speakers(non_native_speakers, 0.10, rng)
     test_speakers = set(test_native + test_non_native)
 
-    remaining_speakers = [s for s in sorted(set(df["speaker_id"])) if s not in test_speakers]
-    rng.shuffle(remaining_speakers)
-
-    # To reach 70/10 train/val overall after removing 20% test: 87.5% / 12.5% of remaining.
-    if remaining_speakers:
-        val_count = max(1, int(round(len(remaining_speakers) * 0.125)))
-        if len(remaining_speakers) - val_count <= 0:
-            val_count = max(0, len(remaining_speakers) - 1)
-    else:
-        val_count = 0
-    val_speakers = set(remaining_speakers[:val_count])
-    train_speakers = set(remaining_speakers[val_count:])
-
     df["split"] = "train"
-    if val_speakers:
-        df.loc[df["speaker_id"].isin(val_speakers), "split"] = "val"
+
     if test_speakers:
         df.loc[df["speaker_id"].isin(test_speakers), "split"] = "test"
+
+    remaining_df = df[df["split"] != "test"]
+
+    train_keep = []
+    speaker_groups = remaining_df.groupby("speaker_id")
+    for _, group in speaker_groups:
+        indices = group.index.tolist()
+        rng.shuffle(indices)
+        train_keep.append(indices[0])
+
+    leftover_indices = set(remaining_df.index.tolist()) - set(train_keep)
+    leftover_indices = list(leftover_indices)
+    rng.shuffle(leftover_indices)
+
+    target_val = int(round(len(df) * 0.10))
+    val_count = min(len(leftover_indices), target_val)
+    val_indices = set(leftover_indices[:val_count])
+    if val_indices:
+        df.loc[df.index.isin(val_indices), "split"] = "val"
 
     return {
         "train": df[df["split"] == "train"].reset_index(drop=True),
