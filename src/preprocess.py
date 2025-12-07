@@ -58,6 +58,29 @@ def clean_text(text: str) -> str:
     return text
 
 
+def normalize_filename(filename: str) -> str:
+    """
+    Normalize filename by zero-padding single digits at the end of the stem.
+    Example: '...utt1.wav' -> '...utt01.wav'
+    """
+    path = Path(filename)
+    stem = path.stem
+    suffix = path.suffix
+    
+    # Regex to find 'utt' followed by a single digit at the end of the stem
+    # or just any single digit at the end.
+    # Based on user request "endingnya cuman 1... jadi 01"
+    # Let's target the 'uttX' pattern specifically as seen in data.
+    
+    # Replace uttX with utt0X where X is a single digit
+    new_stem = re.sub(r"utt(\d)$", r"utt0\1", stem)
+    
+    # Also handle cases where it might not be at the very end but followed by underscore?
+    # The examples are 'utt5.wav'.
+    
+    return f"{new_stem}{suffix}"
+
+
 def _find_column(df: pd.DataFrame, candidates: Iterable[str], kind: str) -> str:
     candidates = list(candidates)
     lowered = {col.lower(): col for col in df.columns}
@@ -187,6 +210,8 @@ def process_transcripts(
     cleaned = df[[file_col, text_col]].copy()
     cleaned[file_col] = cleaned[file_col].astype(str).str.lower()
     cleaned[text_col] = cleaned[text_col].apply(clean_text)
+    # Normalize filenames in the CSV
+    cleaned[file_col] = cleaned[file_col].apply(normalize_filename)
     cleaned = cleaned[cleaned[text_col].str.len() > 0]
 
     print(f"Cleaned {len(cleaned)} rows")
@@ -231,7 +256,10 @@ def process_audio_files(
     total = len(wav_files)
     for i, wav_path in enumerate(wav_files, start=1):
         print(f"[{i}/{total}] Processing {wav_path}")
-        target_path = output_dir / wav_path.name.lower()
+        
+        # Normalize output filename
+        new_name = normalize_filename(wav_path.name)
+        target_path = output_dir / new_name
 
         try:
             waveform, sr = torchaudio.load(wav_path)
