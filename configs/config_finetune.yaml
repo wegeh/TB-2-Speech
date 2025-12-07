@@ -8,10 +8,10 @@ model:
   pretrained_name: cahya/wav2vec2-large-xlsr-javanese
 
 training:
-  batch_size: 8
+  batch_size: 6
   learning_rate: 0.0001
   weight_decay: 0.0001
-  epochs: 5
+  epochs: 20
   gradient_accumulation_steps: 1
   logging_steps: 25
   save_dir: checkpoints/finetune
