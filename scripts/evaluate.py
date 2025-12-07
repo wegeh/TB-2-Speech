@@ -23,33 +23,33 @@ def analyze_errors(ref: str, hyp: str) -> Dict:
     Returns dict with hits, substitutions, deletions, insertions, and error_string.
     """
     if not ref:
-        return {"hits": 0, "subs": 0, "dels": 0, "ins": len(hyp.split()), "error_str": "All Insertions"}
+        return {"hits": 0, "subs": "", "dels": "", "ins": hyp, "error_str": "All Insertions"}
     
     out = jiwer.process_words(ref, hyp)
     ref_words = out.references[0]
     hyp_words = out.hypotheses[0]
     
-    error_parts = []
+    subs = []
+    dels = []
+    ins = []
+    
     for chunk in out.alignments[0]:
         if chunk.type == "substitute":
             ref_str = " ".join(ref_words[chunk.ref_start_idx : chunk.ref_end_idx])
             hyp_str = " ".join(hyp_words[chunk.hyp_start_idx : chunk.hyp_end_idx])
-            error_parts.append(f"S:{ref_str}->{hyp_str}")
+            subs.append(f"{ref_str}->{hyp_str}")
         elif chunk.type == "delete":
             ref_str = " ".join(ref_words[chunk.ref_start_idx : chunk.ref_end_idx])
-            error_parts.append(f"D:{ref_str}")
+            dels.append(ref_str)
         elif chunk.type == "insert":
             hyp_str = " ".join(hyp_words[chunk.hyp_start_idx : chunk.hyp_end_idx])
-            error_parts.append(f"I:{hyp_str}")
+            ins.append(hyp_str)
             
-    error_str = ", ".join(error_parts) if error_parts else "OK"
-    
     return {
         "hits": out.hits,
-        "subs": out.substitutions,
-        "dels": out.deletions,
-        "ins": out.insertions,
-        "error_str": error_str
+        "subs": ", ".join(subs),
+        "dels": ", ".join(dels),
+        "ins": ", ".join(ins),
     }
 from tqdm import tqdm
 from transformers import Wav2Vec2ForCTC, Wav2Vec2Processor
@@ -307,10 +307,13 @@ def main():
                 "filename": fname,
                 "target": target,
                 "prediction_scratch": pred_scratch,
-                "scratch_error": scratch_analysis["error_str"],
+                "scratch_subs": scratch_analysis["subs"],
+                "scratch_dels": scratch_analysis["dels"],
+                "scratch_ins": scratch_analysis["ins"],
                 "prediction_finetune": pred_finetune,
-                "finetune_error": finetune_analysis["error_str"],
-                # We can add counts if needed, but string might be enough for quick check
+                "finetune_subs": finetune_analysis["subs"],
+                "finetune_dels": finetune_analysis["dels"],
+                "finetune_ins": finetune_analysis["ins"],
                 "scratch_wer": jiwer.wer(target, pred_scratch) if target else 1.0,
                 "finetune_wer": jiwer.wer(target, pred_finetune) if target else 1.0,
             }
