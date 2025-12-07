@@ -201,10 +201,9 @@ def process_audio_files(
     if not input_dir.exists():
         raise FileNotFoundError(f"Input audio directory not found: {input_dir}")
 
-    wav_files = sorted(
-        [p for p in input_dir.rglob("*.wav") if p.is_file()]
-        + [p for p in input_dir.rglob("*.WAV") if p.is_file()]
-    )
+    wav_set = {p.resolve() for p in input_dir.rglob("*.wav") if p.is_file()}
+    wav_set.update({p.resolve() for p in input_dir.rglob("*.WAV") if p.is_file()})
+    wav_files = sorted(wav_set)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     processed = 0
