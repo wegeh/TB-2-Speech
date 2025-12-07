@@ -9,7 +9,7 @@ data:
 
 model:
   n_mels: 80
-  encoder_layers: 17
+  encoder_layers: 12
   encoder_dim: 256
   num_heads: 4
   dropout: 0.1
