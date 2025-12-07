@@ -3,6 +3,7 @@ Fine-tune pretrained Wav2Vec2 model for Javanese ASR.
 """
 
 import argparse
+import inspect
 import json
 import sys
 from dataclasses import dataclass
@@ -10,10 +11,10 @@ from pathlib import Path
 from typing import Dict, List, Union
 
 import numpy as np
+import soundfile as sf
 import torch
 import yaml
 from datasets import Dataset
-import soundfile as sf
 from huggingface_hub import hf_hub_download
 from huggingface_hub.utils import EntryNotFoundError
 from jiwer import cer, wer
@@ -99,7 +100,9 @@ def main():
     cache_dir = args.cache_dir
     cache_dir.mkdir(parents=True, exist_ok=True)
 
-    pretrained_name = model_cfg.get("pretrained_name", "facebook/wav2vec2-large-xlsr-53")
+    pretrained_name = model_cfg.get(
+        "pretrained_name", "facebook/wav2vec2-large-xlsr-53"
+    )
 
     def build_processor_and_model():
         try:
@@ -123,12 +126,18 @@ def main():
             model_dir = Path(local_config).parent
             try:
                 vocab_path = hf_hub_download(
-                    pretrained_name, "vocab.json", cache_dir=cache_dir, force_download=True
+                    pretrained_name,
+                    "vocab.json",
+                    cache_dir=cache_dir,
+                    force_download=True,
                 )
                 tokenizer_kwargs = {"vocab_file": vocab_path}
             except EntryNotFoundError:
                 tokenizer_file = hf_hub_download(
-                    pretrained_name, "tokenizer.json", cache_dir=cache_dir, force_download=True
+                    pretrained_name,
+                    "tokenizer.json",
+                    cache_dir=cache_dir,
+                    force_download=True,
                 )
                 tokenizer_kwargs = {"tokenizer_file": tokenizer_file}
             tok_cfg_path = hf_hub_download(
@@ -150,14 +159,18 @@ def main():
                 **tokenizer_kwargs,
             )
             feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained(model_dir)
-            proc = Wav2Vec2Processor(feature_extractor=feature_extractor, tokenizer=tokenizer)
+            proc = Wav2Vec2Processor(
+                feature_extractor=feature_extractor, tokenizer=tokenizer
+            )
             mdl = Wav2Vec2ForCTC.from_pretrained(model_dir)
             return proc, mdl
 
     processor, model = build_processor_and_model()
     model.config.ctc_zero_infinity = True
     if processor.tokenizer.pad_token is None:
-        processor.tokenizer.pad_token = processor.tokenizer.eos_token or processor.tokenizer.unk_token
+        processor.tokenizer.pad_token = (
+            processor.tokenizer.eos_token or processor.tokenizer.unk_token
+        )
 
     @dataclass
     class DataCollatorCTCWithPadding:
@@ -177,13 +190,15 @@ def main():
                 labels_batch = self.processor.pad(
                     label_features, padding=self.padding, return_tensors="pt"
                 )
-            labels = labels_batch["input_ids"].masked_fill(labels_batch.attention_mask.ne(1), -100)
+            labels = labels_batch["input_ids"].masked_fill(
+                labels_batch.attention_mask.ne(1), -100
+            )
             batch["labels"] = labels
             return batch
 
     def prepare_batch(batch):
         audio_path = batch["audio_path"]
-        speech, sr = sf.read(audio_path)  
+        speech, sr = sf.read(audio_path)
 
         if speech.ndim > 1:
             speech = np.mean(speech, axis=1)
@@ -212,9 +227,7 @@ def main():
 
     if hf_splits["train"] is not None:
         train_dataset = hf_splits["train"].map(add_num_samples)
-        train_dataset = train_dataset.filter(
-            lambda x: x["num_samples"] >= min_samples
-        )
+        train_dataset = train_dataset.filter(lambda x: x["num_samples"] >= min_samples)
         train_dataset = train_dataset.map(
             prepare_batch,
             remove_columns=["audio_path", "transcript", "num_samples"],
@@ -222,9 +235,7 @@ def main():
 
     if hf_splits["val"] is not None:
         eval_dataset = hf_splits["val"].map(add_num_samples)
-        eval_dataset = eval_dataset.filter(
-            lambda x: x["num_samples"] >= min_samples
-        )
+        eval_dataset = eval_dataset.filter(lambda x: x["num_samples"] >= min_samples)
         eval_dataset = eval_dataset.map(
             prepare_batch,
             remove_columns=["audio_path", "transcript", "num_samples"],
@@ -255,7 +266,9 @@ def main():
         per_device_eval_batch_size=int(train_cfg.get("batch_size", 4)),
         learning_rate=float(train_cfg.get("learning_rate", 3e-4)),
         num_train_epochs=int(train_cfg.get("epochs", 20)),
-        gradient_accumulation_steps=int(train_cfg.get("gradient_accumulation_steps", 1)),
+        gradient_accumulation_steps=int(
+            train_cfg.get("gradient_accumulation_steps", 1)
+        ),
         eval_steps=int(train_cfg.get("logging_steps", 100)),
         save_steps=int(train_cfg.get("logging_steps", 100)),
         logging_steps=int(train_cfg.get("logging_steps", 100)),
