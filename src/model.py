@@ -60,21 +60,21 @@ class ConformerCTC(nn.Module):
             log_probs: (batch, frames, vocab)
             output_lengths: (batch,)
         """
-        # Ensure minimum length for STFT padding to avoid reflect pad errors.
         if waveforms.dim() == 1:
             waveforms = waveforms.unsqueeze(0)
         if waveforms.shape[-1] < self.n_fft:
             pad_amt = self.n_fft - waveforms.shape[-1]
             waveforms = F.pad(waveforms, (0, pad_amt))
+            waveform_lengths = waveform_lengths + pad_amt
 
         feats = self.melspec(waveforms)  # (batch, n_mels, frames)
         feats = feats.clamp(min=1e-5).log()
         feats = feats.transpose(1, 2)  # (batch, frames, n_mels)
         feats = self.input_linear(feats)
 
-        # Use feature frame lengths derived from original waveforms for the padding mask.
         feature_lengths = self._feature_lengths(waveform_lengths)
-        feature_lengths = feature_lengths.clamp(max=feats.size(1))
+        feature_lengths = feature_lengths.clamp(min=1, max=feats.size(1))
+        feature_lengths = torch.full_like(feature_lengths, feats.size(1))
         encoded, output_lengths = self.encoder(feats, feature_lengths)
         logits = self.fc(encoded)
         log_probs = F.log_softmax(logits, dim=-1)
