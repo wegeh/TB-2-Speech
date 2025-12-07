@@ -272,6 +272,7 @@ def main():
         eval_steps=int(train_cfg.get("logging_steps", 100)),
         save_steps=int(train_cfg.get("logging_steps", 100)),
         logging_steps=int(train_cfg.get("logging_steps", 100)),
+        save_total_limit=2,  # Limit to 2 most recent checkpoints
         fp16=torch.cuda.is_available(),
     )
     if _supports_arg("evaluation_strategy"):
