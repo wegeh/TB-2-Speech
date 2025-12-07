@@ -315,7 +315,10 @@ def main():
             plot_metrics(self.history, self.save_path)
 
     save_dir = Path(train_cfg.get("save_dir", "checkpoints/finetune"))
-    plotting_callback = PlottingCallback(save_dir / "training_plot.png")
+    
+    results_dir = Path("results")
+    results_dir.mkdir(exist_ok=True)
+    plotting_callback = PlottingCallback(results_dir / "finetune_training_plot.png")
 
     trainer = Trainer(
         model=model,

@@ -26,17 +26,21 @@ def analyze_errors(ref: str, hyp: str) -> Dict:
         return {"hits": 0, "subs": 0, "dels": 0, "ins": len(hyp.split()), "error_str": "All Insertions"}
     
     out = jiwer.process_words(ref, hyp)
+    ref_words = out.references[0]
+    hyp_words = out.hypotheses[0]
     
-    # Construct a readable error string
-    # We can iterate through alignments
     error_parts = []
     for chunk in out.alignments[0]:
         if chunk.type == "substitute":
-            error_parts.append(f"S:{chunk.ref_str}->{chunk.hyp_str}")
+            ref_str = " ".join(ref_words[chunk.ref_start_idx : chunk.ref_end_idx])
+            hyp_str = " ".join(hyp_words[chunk.hyp_start_idx : chunk.hyp_end_idx])
+            error_parts.append(f"S:{ref_str}->{hyp_str}")
         elif chunk.type == "delete":
-            error_parts.append(f"D:{chunk.ref_str}")
+            ref_str = " ".join(ref_words[chunk.ref_start_idx : chunk.ref_end_idx])
+            error_parts.append(f"D:{ref_str}")
         elif chunk.type == "insert":
-            error_parts.append(f"I:{chunk.hyp_str}")
+            hyp_str = " ".join(hyp_words[chunk.hyp_start_idx : chunk.hyp_end_idx])
+            error_parts.append(f"I:{hyp_str}")
             
     error_str = ", ".join(error_parts) if error_parts else "OK"
     
@@ -224,7 +228,7 @@ def parse_args():
     parser.add_argument(
         "--output_csv",
         type=Path,
-        default=Path("evaluation_results.csv"),
+        default=Path("results/evaluation_results.csv"),
         help="Path to save predictions CSV.",
     )
     return parser.parse_args()
@@ -312,6 +316,7 @@ def main():
             }
         )
 
+    args.output_csv.parent.mkdir(parents=True, exist_ok=True)
     pd.DataFrame(rows).to_csv(args.output_csv, index=False)
     print(f"Saved prediction comparison to {args.output_csv}")
     print(

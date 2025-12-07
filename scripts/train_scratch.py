@@ -122,7 +122,10 @@ def main():
     epochs = int(train_cfg.get("epochs", 50))
 
     history = trainer.fit(train_loader, val_loader, epochs=epochs, checkpoint_dir=checkpoint_dir)
-    plot_metrics(history, checkpoint_dir / "training_plot.png")
+    
+    results_dir = Path("results")
+    results_dir.mkdir(exist_ok=True)
+    plot_metrics(history, results_dir / "scratch_training_plot.png")
 
 
 if __name__ == "__main__":
