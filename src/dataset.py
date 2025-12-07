@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import re
 import random
 from pathlib import Path
 from typing import Dict, List, Tuple
@@ -84,6 +85,22 @@ def prepare_metadata(
         if not filename.lower().endswith(".wav"):
             filename = f"{filename}.wav"
         filepath = audio_dir / filename
+        # Handle cases where transcript uses utt1 instead of utt01
+        if not filepath.exists():
+            match = re.search(r"(utt)(\d+)(\.wav)$", filename, flags=re.IGNORECASE)
+            if match:
+                prefix, num, suffix = match.groups()
+                if len(num) == 1:
+                    alt_filename = re.sub(
+                        r"(utt)\d+(\.wav)$",
+                        rf"\1{num.zfill(2)}\2",
+                        filename,
+                        flags=re.IGNORECASE,
+                    )
+                    alt_path = audio_dir / alt_filename
+                    if alt_path.exists():
+                        filename = alt_filename
+                        filepath = alt_path
         try:
             speaker_id, native_flag = parse_filename_metadata(filename)
         except ValueError as exc:
