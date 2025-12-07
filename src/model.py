@@ -11,7 +11,7 @@ import torchaudio
 class ConformerCTC(nn.Module):
     """
     Conformer-based CTC model for ASR.
-    
+
     Args:
         vocab_size (int): Size of the vocabulary (output classes).
         encoder_dim (int): Dimension of the encoder.
@@ -21,6 +21,7 @@ class ConformerCTC(nn.Module):
         dropout (float): Dropout rate.
         sample_rate (int): Audio sample rate.
     """
+
     def __init__(
         self,
         vocab_size: int,
@@ -59,15 +60,16 @@ class ConformerCTC(nn.Module):
         hop_length = self.melspec.hop_length or 1
         # MelSpectrogram with center=True pads by n_fft//2 on each side.
         pad = n_fft // 2
-        lengths = torch.div(
-            waveform_lengths + 2 * pad - n_fft, hop_length, rounding_mode="floor"
-        ) + 1
+        lengths = (
+            torch.div(
+                waveform_lengths + 2 * pad - n_fft, hop_length, rounding_mode="floor"
+            )
+            + 1
+        )
         return lengths.clamp(min=1)
 
     def forward(
-        self, 
-        waveforms: torch.Tensor, 
-        waveform_lengths: torch.Tensor
+        self, waveforms: torch.Tensor, waveform_lengths: torch.Tensor
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """
         Forward pass.
@@ -75,7 +77,7 @@ class ConformerCTC(nn.Module):
         Args:
             waveforms: (batch, time)
             waveform_lengths: (batch,)
-            
+
         Returns:
             log_probs: (batch, frames, vocab)
             output_lengths: (batch,)
@@ -94,12 +96,13 @@ class ConformerCTC(nn.Module):
 
         feature_lengths = self._feature_lengths(waveform_lengths)
         feature_lengths = feature_lengths.clamp(min=1, max=feats.size(1))
-        
+        feature_lengths = torch.full_like(feature_lengths, feats.size(1))
+
         # Note: Conformer expects lengths, but we might need to mask properly if using it.
         # torchaudio Conformer returns (output, output_lengths)
         encoded, output_lengths = self.encoder(feats, feature_lengths)
-        
+
         logits = self.fc(encoded)
         log_probs = F.log_softmax(logits, dim=-1)
-        
+
         return log_probs, output_lengths

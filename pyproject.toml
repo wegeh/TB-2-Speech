@@ -20,7 +20,8 @@ dependencies = [
     "tqdm",
     "huggingface_hub",
     "datasets",
-    "openpyxl"
+    "openpyxl",
+    "torchcodec",
 ]
 
 [project.scripts]

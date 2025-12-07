@@ -11,16 +11,15 @@ from __future__ import annotations
 import argparse
 import re
 import string
+import subprocess
 import sys
 from pathlib import Path
-from typing import Iterable, Tuple, Optional
+from typing import Iterable, Optional, Tuple
 
 import pandas as pd
+import soundfile as sf
 import torch
 import torchaudio
-import soundfile as sf
-import subprocess
-
 
 PUNCT_TO_REMOVE = string.punctuation.replace("'", "")
 TEXT_COL_CANDIDATES = ["text", "transcript", "sentence", "label", "target"]
@@ -51,18 +50,12 @@ def clean_text(text: str) -> str:
 def _find_column(df: pd.DataFrame, candidates: Iterable[str], kind: str) -> str:
     candidates = list(candidates)
     lowered = {col.lower(): col for col in df.columns}
-    
-    # Priority 1: Exact matches
-    for cand in candidates:
-        if cand in lowered:
-            return lowered[cand]
-            
-    # Priority 2: Partial matches (in order of candidates)
-    for cand in candidates:
-        for col_lower, original in lowered.items():
-            if cand in col_lower:
+
+    for col_lower, original in lowered.items():
+        for cand in candidates:
+            if cand == col_lower or cand in col_lower:
                 return original
-                
+
     raise ValueError(
         f"Cannot find {kind} column. Looked for {candidates}. Available: {list(df.columns)}"
     )
@@ -115,7 +108,9 @@ def load_transcript(
         candidates.append(transcript_path.with_suffix(".csv"))
         candidates.append(transcript_path.with_suffix(".xlsx"))
     else:
-        alt = transcript_path.with_suffix(".xlsx" if transcript_path.suffix != ".xlsx" else ".csv")
+        alt = transcript_path.with_suffix(
+            ".xlsx" if transcript_path.suffix != ".xlsx" else ".csv"
+        )
         candidates.append(alt)
     candidates.append(Path("data/transcripts.xlsx"))
 
@@ -129,7 +124,9 @@ def load_transcript(
                 if isinstance(df, dict):
                     # Pick the first sheet if a dict is returned.
                     first_key = next(iter(df))
-                    print(f"Info: sheet_name returned multiple sheets; using first sheet: {first_key}")
+                    print(
+                        f"Info: sheet_name returned multiple sheets; using first sheet: {first_key}"
+                    )
                     df = df[first_key]
             else:
                 df = pd.read_csv(candidate)
@@ -213,7 +210,7 @@ def process_audio_files(
     for i, wav_path in enumerate(wav_files, start=1):
         print(f"[{i}/{total}] Processing {wav_path}")
         target_path = output_dir / wav_path.name
-    
+
         try:
             waveform, sr = torchaudio.load(wav_path)
             waveform = _to_mono(waveform)
@@ -299,12 +296,16 @@ def run_cleaning(
     print(f" - Cleaned rows written to: {output_transcript} (rows: {rows})")
 
     print(f"Processing audio from: {audio_dir}")
-    count = process_audio_files(audio_dir, output_audio_dir, target_sample_rate=sample_rate)
+    count = process_audio_files(
+        audio_dir, output_audio_dir, target_sample_rate=sample_rate
+    )
     print(f" - Processed {count} audio files to {output_audio_dir}")
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Clean text transcripts and audio files.")
+    parser = argparse.ArgumentParser(
+        description="Clean text transcripts and audio files."
+    )
     parser.add_argument(
         "--transcript_path",
         type=Path,
