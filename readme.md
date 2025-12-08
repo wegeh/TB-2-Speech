@@ -19,15 +19,17 @@ This repo trains two ASR baselines (Conformer CTC from scratch and Wav2Vec2 fine
 - scripts/ contains the executable scripts.
 
 ## Setup
-bash
 # Create virtual environment
+```
 python -m venv venv
 source venv/bin/activate  # Linux/Mac
-# venv\Scripts\activate  # Windows
+venv\Scripts\activate  # Windows
+```
 
 # Install dependencies
+```
 pip install -e .
-
+```
 
 ## Step 0: Place Your Data
 1) Put all audio files in data/wav/ (or directly in data/ if no subfolder).  
@@ -35,34 +37,34 @@ pip install -e .
 
 ## Step 1: Clean Data
 Creates 16 kHz mono WAVs and cleaned transcripts.
-bash
+```
 python scripts/clean_data.py --transcript_path data/transcripts.xlsx --audio_dir data
-
+```
 Outputs:
 - data/wav_clean/ (resampled audio)
 - data/transcript_clean.csv (lowercased, punctuation removed except apostrophes)
 
 ## Step 2: Train Conformer From Scratch
 Adjust configs/config_scratch.yaml (e.g., epochs, model size). Then run:
-bash
+```
 python scripts/train_scratch.py
-
+```
 Outputs:
 - Checkpoint saved to checkpoints/scratch/best_model.pth (best val WER).
 - Training plot saved to results/scratch_training_plot.png.
 
 ## Step 3: Fine-Tune Wav2Vec2
 Adjust configs/config_finetune.yaml (e.g., epochs). Then run:
-bash
+```
 python scripts/train_finetune.py --cache_dir hf_cache
-
+```
 This downloads facebook/wav2vec2-large-xlsr-53 into hf_cache/ and saves fine-tuned weights in checkpoints/finetune/.
 
 ## Step 4: Evaluate
 Compares scratch vs fine-tuned on the held-out test split and writes a CSV of predictions.
-bash
+```
 python scripts/evaluate.py
-
+```
 Outputs:
 - Metrics printed (WER/CER for both models).
 - results/evaluation_results.csv with filename, target, prediction_scratch, prediction_finetune, and detailed error analysis.
