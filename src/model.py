@@ -20,11 +20,6 @@ class ConformerCTC(nn.Module):
         n_mels (int): Number of mel filterbanks.
         dropout (float): Dropout rate.
         sample_rate (int): Audio sample rate.
-        spec_augment (bool): Whether to apply SpecAugment during training.
-        freq_mask_param (int): Maximum frequency mask parameter.
-        time_mask_param (int): Maximum time mask parameter.
-        num_freq_masks (int): Number of frequency masks.
-        num_time_masks (int): Number of time masks.
     """
 
     def __init__(
@@ -36,17 +31,10 @@ class ConformerCTC(nn.Module):
         n_mels: int = 80,
         dropout: float = 0.1,
         sample_rate: int = 16000,
-        spec_augment: bool = True,
-        freq_mask_param: int = 27,
-        time_mask_param: int = 100,
-        num_freq_masks: int = 2,
-        num_time_masks: int = 2,
     ):
         super().__init__()
         self.sample_rate = sample_rate
         self.n_fft = 400
-        self.spec_augment = spec_augment
-        
         self.melspec = torchaudio.transforms.MelSpectrogram(
             sample_rate=sample_rate,
             n_fft=self.n_fft,
@@ -55,13 +43,6 @@ class ConformerCTC(nn.Module):
             pad_mode="constant",
             center=True,
         )
-        
-        # SpecAugment transforms
-        self.freq_mask = torchaudio.transforms.FrequencyMasking(freq_mask_param)
-        self.time_mask = torchaudio.transforms.TimeMasking(time_mask_param)
-        self.num_freq_masks = num_freq_masks
-        self.num_time_masks = num_time_masks
-        
         self.input_linear = nn.Linear(n_mels, encoder_dim)
         self.encoder = torchaudio.models.Conformer(
             input_dim=encoder_dim,
@@ -109,14 +90,6 @@ class ConformerCTC(nn.Module):
             waveform_lengths = waveform_lengths + pad_amt
 
         feats = self.melspec(waveforms)  # (batch, n_mels, frames)
-        
-        # Apply SpecAugment during training
-        if self.training and self.spec_augment:
-            for _ in range(self.num_freq_masks):
-                feats = self.freq_mask(feats)
-            for _ in range(self.num_time_masks):
-                feats = self.time_mask(feats)
-        
         feats = feats.clamp(min=1e-5).log()
         feats = feats.transpose(1, 2)  # (batch, frames, n_mels)
         feats = self.input_linear(feats)

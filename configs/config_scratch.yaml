@@ -9,22 +9,16 @@ data:
 
 model:
   n_mels: 80
-  encoder_layers: 16
-  encoder_dim: 512
-  num_heads: 8
+  encoder_layers: 12
+  encoder_dim: 256
+  num_heads: 4
   dropout: 0.1
-  spec_augment: true
-  freq_mask_param: 27
-  time_mask_param: 100
-  num_freq_masks: 2
-  num_time_masks: 2
 
 training:
   batch_size: 8
-  learning_rate: 0.0003
+  learning_rate: 0.0001
   weight_decay: 0.0001
-  epochs: 50
+  epochs: 20
   grad_clip: 5.0
   log_interval: 10
   checkpoint_dir: checkpoints/scratch
-  warmup_steps: 1000

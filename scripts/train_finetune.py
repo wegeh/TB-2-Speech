@@ -271,13 +271,11 @@ def main():
         output_dir=train_cfg.get("save_dir", "checkpoints/finetune"),
         per_device_train_batch_size=int(train_cfg.get("batch_size", 4)),
         per_device_eval_batch_size=int(train_cfg.get("batch_size", 4)),
-        learning_rate=float(train_cfg.get("learning_rate", 3e-5)),
-        weight_decay=float(train_cfg.get("weight_decay", 0.01)),
+        learning_rate=float(train_cfg.get("learning_rate", 3e-4)),
         num_train_epochs=int(train_cfg.get("epochs", 20)),
         gradient_accumulation_steps=int(
             train_cfg.get("gradient_accumulation_steps", 1)
         ),
-        warmup_ratio=float(train_cfg.get("warmup_ratio", 0.1)),
         eval_steps=int(train_cfg.get("logging_steps", 100)),
         save_steps=int(train_cfg.get("logging_steps", 100)),
         logging_steps=int(train_cfg.get("logging_steps", 100)),
