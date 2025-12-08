@@ -9,16 +9,19 @@ data:
 
 model:
   n_mels: 80
-  encoder_layers: 12
+  encoder_layers: 3         # 3 Conformer blocks
   encoder_dim: 256
   num_heads: 4
   dropout: 0.1
+  use_lstm_decoder: true    # Enable LSTM decoder
+  lstm_hidden_dim: 256
+  lstm_layers: 2
 
 training:
   batch_size: 8
   learning_rate: 0.0001
   weight_decay: 0.0001
-  epochs: 10
+  epochs: 10               # 10 epochs
   grad_clip: 5.0
   log_interval: 10
   checkpoint_dir: checkpoints/scratch

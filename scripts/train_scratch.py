@@ -15,10 +15,16 @@ from torch.utils.data import DataLoader
 # Add project root to sys.path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from src.dataset import DEFAULT_VOCAB, JavaneseDataset, collate_fn, create_splits, prepare_metadata
+from src.dataset import (
+    DEFAULT_VOCAB,
+    JavaneseDataset,
+    collate_fn,
+    create_splits,
+    prepare_metadata,
+)
 from src.model import ConformerCTC
 from src.trainer import CTCTrainer
-from src.utils import set_all_seeds, seed_worker
+from src.utils import seed_worker, set_all_seeds
 from src.visualization import plot_metrics
 
 
@@ -59,16 +65,25 @@ def main():
     filename_column = data_cfg.get("filename_column", None)
 
     metadata = prepare_metadata(
-        transcript_path, audio_dir, text_column=text_column, filename_column=filename_column
+        transcript_path,
+        audio_dir,
+        text_column=text_column,
+        filename_column=filename_column,
     )
+
+    print(metadata)
     splits = create_splits(metadata, seed=seed)
 
     vocab = DEFAULT_VOCAB
     idx_to_char = vocab
     blank_id = 0
 
-    train_dataset = JavaneseDataset(splits["train"], vocab=vocab, sample_rate=sample_rate)
+    train_dataset = JavaneseDataset(
+        splits["train"], vocab=vocab, sample_rate=sample_rate
+    )
     val_dataset = JavaneseDataset(splits["val"], vocab=vocab, sample_rate=sample_rate)
+
+    print("train dataset", train_dataset[0])
 
     num_workers = int(data_cfg.get("num_workers", 0))
     collate = functools.partial(collate_fn, blank_id=blank_id)
@@ -103,6 +118,9 @@ def main():
         n_mels=int(model_cfg.get("n_mels", 80)),
         dropout=float(model_cfg.get("dropout", 0.1)),
         sample_rate=sample_rate,
+        use_lstm_decoder=bool(model_cfg.get("use_lstm_decoder", False)),
+        lstm_hidden_dim=int(model_cfg.get("lstm_hidden_dim", 256)),
+        lstm_layers=int(model_cfg.get("lstm_layers", 2)),
     )
 
     optimizer = torch.optim.AdamW(
@@ -126,8 +144,10 @@ def main():
     checkpoint_dir = Path(train_cfg.get("checkpoint_dir", "checkpoints/scratch"))
     epochs = int(train_cfg.get("epochs", 50))
 
-    history = trainer.fit(train_loader, val_loader, epochs=epochs, checkpoint_dir=checkpoint_dir)
-    
+    history = trainer.fit(
+        train_loader, val_loader, epochs=epochs, checkpoint_dir=checkpoint_dir
+    )
+
     results_dir = Path("results")
     results_dir.mkdir(exist_ok=True)
     plot_metrics(history, results_dir / "scratch_training_plot.png")

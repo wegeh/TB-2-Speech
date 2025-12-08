@@ -10,7 +10,7 @@ import torchaudio
 
 class ConformerCTC(nn.Module):
     """
-    Conformer-based CTC model for ASR.
+    Conformer-based CTC model for ASR with optional LSTM decoder.
 
     Args:
         vocab_size (int): Size of the vocabulary (output classes).
@@ -20,6 +20,9 @@ class ConformerCTC(nn.Module):
         n_mels (int): Number of mel filterbanks.
         dropout (float): Dropout rate.
         sample_rate (int): Audio sample rate.
+        use_lstm_decoder (bool): Whether to use LSTM decoder after Conformer.
+        lstm_hidden_dim (int): Hidden dimension for LSTM decoder.
+        lstm_layers (int): Number of LSTM layers.
     """
 
     def __init__(
@@ -31,10 +34,15 @@ class ConformerCTC(nn.Module):
         n_mels: int = 80,
         dropout: float = 0.1,
         sample_rate: int = 16000,
+        use_lstm_decoder: bool = False,
+        lstm_hidden_dim: int = 256,
+        lstm_layers: int = 2,
     ):
         super().__init__()
         self.sample_rate = sample_rate
         self.n_fft = 400
+        self.use_lstm_decoder = use_lstm_decoder
+        
         self.melspec = torchaudio.transforms.MelSpectrogram(
             sample_rate=sample_rate,
             n_fft=self.n_fft,
@@ -52,7 +60,22 @@ class ConformerCTC(nn.Module):
             depthwise_conv_kernel_size=31,
             dropout=dropout,
         )
-        self.fc = nn.Linear(encoder_dim, vocab_size)
+        
+        # LSTM decoder (optional)
+        if use_lstm_decoder:
+            self.lstm = nn.LSTM(
+                input_size=encoder_dim,
+                hidden_size=lstm_hidden_dim,
+                num_layers=lstm_layers,
+                batch_first=True,
+                dropout=dropout if lstm_layers > 1 else 0,
+                bidirectional=True,
+            )
+            # Bidirectional LSTM doubles the output dimension
+            self.fc = nn.Linear(lstm_hidden_dim * 2, vocab_size)
+        else:
+            self.lstm = None
+            self.fc = nn.Linear(encoder_dim, vocab_size)
 
     def _feature_lengths(self, waveform_lengths: torch.Tensor) -> torch.Tensor:
         """Compute the length of the features after MelSpectrogram."""
@@ -98,9 +121,12 @@ class ConformerCTC(nn.Module):
         feature_lengths = feature_lengths.clamp(min=1, max=feats.size(1))
         feature_lengths = torch.full_like(feature_lengths, feats.size(1))
 
-        # Note: Conformer expects lengths, but we might need to mask properly if using it.
-        # torchaudio Conformer returns (output, output_lengths)
+        # Conformer encoder
         encoded, output_lengths = self.encoder(feats, feature_lengths)
+        
+        # LSTM decoder (if enabled)
+        if self.use_lstm_decoder and self.lstm is not None:
+            encoded, _ = self.lstm(encoded)
 
         logits = self.fc(encoded)
         log_probs = F.log_softmax(logits, dim=-1)
