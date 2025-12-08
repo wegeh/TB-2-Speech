@@ -103,6 +103,11 @@ def main():
         n_mels=int(model_cfg.get("n_mels", 80)),
         dropout=float(model_cfg.get("dropout", 0.1)),
         sample_rate=sample_rate,
+        spec_augment=bool(model_cfg.get("spec_augment", True)),
+        freq_mask_param=int(model_cfg.get("freq_mask_param", 27)),
+        time_mask_param=int(model_cfg.get("time_mask_param", 100)),
+        num_freq_masks=int(model_cfg.get("num_freq_masks", 2)),
+        num_time_masks=int(model_cfg.get("num_time_masks", 2)),
     )
 
     optimizer = torch.optim.AdamW(
@@ -110,7 +115,17 @@ def main():
         lr=float(train_cfg.get("learning_rate", 1e-3)),
         weight_decay=float(train_cfg.get("weight_decay", 1e-4)),
     )
-    scheduler = None
+    
+    # Learning rate scheduler with warmup
+    warmup_steps = int(train_cfg.get("warmup_steps", 0))
+    total_steps = len(train_loader) * int(train_cfg.get("epochs", 50))
+    
+    def lr_lambda(step):
+        if step < warmup_steps:
+            return float(step) / float(max(1, warmup_steps))
+        return max(0.0, 1.0 - (step - warmup_steps) / (total_steps - warmup_steps))
+    
+    scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda) if warmup_steps > 0 else None
 
     trainer = CTCTrainer(
         model=model,
