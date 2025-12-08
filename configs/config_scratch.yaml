@@ -5,7 +5,7 @@ data:
   filename_column: SentenceID
   sample_rate: 16000
   num_workers: 0
-  seed: 42
+  seed: 7
 
 model:
   n_mels: 80
